@@ -20,7 +20,10 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 
 FROM node:lts-alpine
-RUN apk add --update --no-cache dumb-init
+RUN apk add --update --no-cache dumb-init \
+    openjdk17 \
+    kubectl \
+    jq
 ENV NODE_ENV production
 USER node
 WORKDIR /usr/src/app

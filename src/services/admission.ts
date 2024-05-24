@@ -45,9 +45,26 @@ export class Admission implements IAdmission {
     }
 
     const targetContainersAnnotation = 'jacoco-operator.curium.rocks/target-containers'
+    const agentVersionAnnotation = 'jacoco-operator.curium.rocks/agent-version'
+    const agentTcpServerAddressAnnotation = 'jacoco-operator.curium.rocks/agent-tcp-server-address'
+    const agentTcpServerPortAnnotation = 'jacoco-operator.curium.rocks/agent-tcp-server-port'
+
+    let agentVersion = this.agentVersion
+    let enableTcpServer = false
+    let tcpServerAddress = '*'
+    let tcpServerPort = '6300'
 
     // look for the container name annotation
     if (!pod.metadata || !pod.metadata.annotations || !pod.metadata.annotations[targetContainersAnnotation]) return '[]'
+    if (pod.metadata && pod.metadata.annotations && pod.metadata.annotations[agentVersionAnnotation]) {
+      agentVersion = pod.metadata.annotations[agentVersionAnnotation]
+    }
+
+    if (pod.metadata && pod.metadata.annotations && pod.metadata.annotations[agentTcpServerAddressAnnotation] && pod.metadata.annotations[agentTcpServerPortAnnotation]) {
+      enableTcpServer = true
+      tcpServerAddress = pod.metadata.annotations[agentTcpServerAddressAnnotation]
+      tcpServerPort = pod.metadata.annotations[agentTcpServerPortAnnotation]
+    }
 
     const targetContainers = pod.metadata?.annotations[targetContainersAnnotation].split(',')
     const includeMap = targetContainers.map((c) => spec.containers.some((cont) => cont.name === c))
@@ -95,7 +112,14 @@ export class Admission implements IAdmission {
         name: 'JACOCO_FOLDER_PATH',
         value: destfile
       })
-      const agentConfig = `-javaagent:/mnt/jacoco/agent/${this.agentVersion}/jacoco.jar=destfile=${destfile}`
+
+      let agentConfig = `-javaagent:/mnt/jacoco/agent/${agentVersion}/jacoco.jar`
+      if (enableTcpServer) {
+        agentConfig += `=output=tcpserver,address=${tcpServerAddress},port=${tcpServerPort}`
+      } else {
+        agentConfig += `=destfile=${destfile}`
+      }
+
       if (!c.env.some((e) => e.name === 'JAVA_TOOL_OPTIONS')) {
         c.env.push({
           name: 'JAVA_TOOL_OPTIONS',
