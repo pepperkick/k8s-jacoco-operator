@@ -7,7 +7,6 @@ Dockerfile
 .gitignore
 .npmrc
 coverage
-helm
 build
 .idea
 .vscode

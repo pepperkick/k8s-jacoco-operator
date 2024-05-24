@@ -50,6 +50,11 @@ app.kubernetes.io/name: {{ include "k8s-jacoco-operator.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
+{{- define "k8s-jacoco-file-access.selectorLabels" -}}
+app.kubernetes.io/name: {{ .Release.Name }}-file-access
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
 {{/*
 Create the name of the service account to use
 */}}
@@ -100,7 +105,7 @@ spec:
         imagePullPolicy: Always
         command: ["node", "/job/entry-point.js"]
         env:
-          - name: AGENT_VERSION
-            value: {{ .Values.agentVersion }}
+          - name: AGENT_VERSIONS
+            value: {{ .Values.downloadAgentVersions }}
       restartPolicy: Never
 {{- end -}}

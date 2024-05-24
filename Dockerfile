@@ -20,12 +20,16 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 
 FROM node:lts-alpine
-RUN apk add --update --no-cache dumb-init
+RUN apk add --update --no-cache dumb-init \
+    openjdk17 \
+    kubectl \
+    jq
 ENV NODE_ENV production
+COPY ./helm/k8s-jacoco-operator/scripts/coverage.sh /usr/src/
+RUN chmod +x /usr/src/coverage.sh
 USER node
 WORKDIR /usr/src/app
 COPY --chown=node:node --from=libraries /usr/src/app/node_modules /usr/src/app/node_modules
-
 COPY --chown=node:node --from=build /usr/src/app/dist/ /usr/src/app/
 EXPOSE 3000
 CMD ["dumb-init", "node", "app.js"]
