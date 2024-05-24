@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  repository: ghcr.io/curium-rocks/k8s-jacoco-operator
+  repository: ghcr.io/pepperkick/k8s-jacoco-operator
   pullPolicy: Always
   tag: main
 agentVersion: 0.8.8

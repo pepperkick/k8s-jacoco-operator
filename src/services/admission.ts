@@ -35,6 +35,15 @@ export class Admission implements IAdmission {
     const observer = jsonpatch.observe<V1Pod>(pod)
     const spec = pod.spec as V1PodSpec
 
+    let podName = pod.metadata?.name
+    if (!podName) {
+      // Pod name is not generated yet, have to generate one
+      podName = pod.metadata?.generateName + randomString(16)
+    }
+    if (!podName) {
+      this.logger.warn('Failed to get or generate pod name')
+    }
+
     const targetContainersAnnotation = 'jacoco-operator.curium.rocks/target-containers'
 
     // look for the container name annotation
@@ -68,6 +77,7 @@ export class Admission implements IAdmission {
     // change all the containers to mount in the agent and the coverage
     // add JAVA_TOOL_OPTIONS env var
     spec.containers.filter(c => targetContainers.some((n) => n === c.name)).forEach((c) => {
+      this.logger.info(`Container ${JSON.stringify(c)}`)
       if (!c.volumeMounts) c.volumeMounts = []
       c.volumeMounts.push({
         name: 'jacoco-coverage',
@@ -78,7 +88,14 @@ export class Admission implements IAdmission {
         mountPath: '/mnt/jacoco/agent'
       })
       if (!c.env) c.env = []
-      const agentConfig = `-javaagent:/mnt/jacoco/agent/${this.agentVersion}/jacoco.jar=destfile=/mnt/jacoco/coverage/${pod.metadata?.name}/jacoco.exec`
+
+      const destfile = `/mnt/jacoco/coverage/${podName}-${c.name}/jacoco.exec`
+
+      c.env.push({
+        name: 'JACOCO_FOLDER_PATH',
+        value: destfile
+      })
+      const agentConfig = `-javaagent:/mnt/jacoco/agent/${this.agentVersion}/jacoco.jar=destfile=${destfile}`
       if (!c.env.some((e) => e.name === 'JAVA_TOOL_OPTIONS')) {
         c.env.push({
           name: 'JAVA_TOOL_OPTIONS',
@@ -92,4 +109,11 @@ export class Admission implements IAdmission {
     })
     return Promise.resolve(JSON.stringify(jsonpatch.generate(observer)))
   }
+}
+
+function randomString (length: number) {
+  const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  let result = ''
+  for (let i = length; i > 0; --i) result += chars[Math.floor(Math.random() * chars.length)]
+  return result
 }

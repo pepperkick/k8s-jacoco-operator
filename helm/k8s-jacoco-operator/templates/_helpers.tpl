@@ -99,5 +99,8 @@ spec:
         image: node:lts-alpine
         imagePullPolicy: Always
         command: ["node", "/job/entry-point.js"]
+        env:
+          - name: AGENT_VERSION
+            value: {{ .Values.agentVersion }}
       restartPolicy: Never
 {{- end -}}
